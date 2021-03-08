@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/mobile_navigation"
+    app:startDestination="@+id/navigation_info">
+
+    <fragment
+        android:id="@+id/navigation_info"
+        android:name="ua.kpi.comsys.iv8114.mobiledev.lab1_1.Lab1"
+        android:label="@string/titleLab1"
+        tools:layout="@layout/lab1_1" />
+
+    <fragment
+        android:id="@+id/navigation_dashboard"
+        android:name="ua.kpi.comsys.iv8114.mobiledev.lab2.Lab2"
+        android:label="@string/titleLab2"
+        tools:layout="@layout/lab2" />
+
+    <fragment
+        android:id="@+id/navigation_videocam"
+        android:name="ua.kpi.comsys.iv8114.mobiledev.lab3.Lab3"
+        android:label="@string/titleLab3"
+        tools:layout="@layout/lab3" />
+</navigation>

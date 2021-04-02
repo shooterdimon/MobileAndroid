@@ -1,8 +1,11 @@
 package ua.kpi.comsys.iv8114.mobiledev.lab3;
 
 import android.content.Context;
+import android.graphics.Color;
 import android.text.TextUtils;
+import android.view.Gravity;
 import android.view.ViewGroup;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -10,25 +13,53 @@ import android.widget.TextView;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
 
+import com.daimajia.swipe.SwipeLayout;
+
 import java.lang.reflect.Field;
 
 import ua.kpi.comsys.iv8114.mobiledev.R;
 
 public class MovieList {
 
-    public ConstraintLayout moviePack;
+    public Object[] moviePack;
 
     public MovieList(Context context, LinearLayout movieList, Movie movie){
         moviePack = newMovieList(context, movieList, movie);
     }
 
-    private ConstraintLayout newMovieList(Context context, LinearLayout movieList, Movie movie){
+    private Object[] newMovieList(Context context, LinearLayout movieList, Movie movie){
+        SwipeLayout swipeLayout = new SwipeLayout(context);
+        swipeLayout.setShowMode(SwipeLayout.ShowMode.PullOut);
+        swipeLayout.setLayoutParams(
+                new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT));
+        movieList.addView(swipeLayout);
+
+        ImageButton deleteButton = new ImageButton(context);
+        deleteButton.setImageResource(R.drawable.ic_delete_sweep_black_24dp);
+        deleteButton.setBackgroundColor(Color.RED);
+        deleteButton.setPadding(50, 0, 50, 0);
+        LinearLayout.LayoutParams btnBinParams =
+                new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT);
+        btnBinParams.gravity = Gravity.RIGHT;
+        swipeLayout.setShowMode(SwipeLayout.ShowMode.PullOut);
+        swipeLayout.addView(deleteButton, 0, btnBinParams);
+
         ConstraintLayout movieLayTmp = new ConstraintLayout(context);
         movieLayTmp.setBackgroundResource(R.drawable.movielist);
         movieLayTmp.setLayoutParams(
                 new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.WRAP_CONTENT));
-        movieList.addView(movieLayTmp);
+        swipeLayout.addView(movieLayTmp, 1);
+
+        deleteButton.setOnClickListener(v -> Lab3.binClicked(swipeLayout));
+        movieLayTmp.setOnClickListener(v -> {
+            if (movie.getImdbID().length() != 0 && !movie.getImdbID().equals("noid")) {
+                MovieInfo popUpClass = new MovieInfo();
+                popUpClass.showPopupWindow(v, movie);
+            }
+        });
 
         ImageView imageTmp = new ImageView(context);
         imageTmp.setId(imageTmp.hashCode());
@@ -42,7 +73,7 @@ public class MovieList {
         TextView textTitle = new TextView(context);
         textTitle.setText(movie.getTitle());
         textTitle.setEllipsize(TextUtils.TruncateAt.END);
-        textTitle.setMaxLines(4);
+        textTitle.setMaxLines(1);
         textTitle.setId(textTitle.hashCode());
         movieLayTmp.addView(textTitle, new ConstraintLayout.LayoutParams(
                 ConstraintLayout.LayoutParams.MATCH_CONSTRAINT,
@@ -51,7 +82,7 @@ public class MovieList {
         TextView textYear = new TextView(context);
         textYear.setText(movie.getYear());
         textYear.setEllipsize(TextUtils.TruncateAt.END);
-        textYear.setMaxLines(1);
+        textYear.setMaxLines(4);
         textYear.setId(textYear.hashCode());
         movieLayTmp.addView(textYear, new ConstraintLayout.LayoutParams(
                 ConstraintLayout.LayoutParams.MATCH_CONSTRAINT,
@@ -107,7 +138,7 @@ public class MovieList {
 
         textConstraintSet.applyTo(movieLayTmp);
 
-        return movieLayTmp;
+        return new Object[] {swipeLayout, movie};
     }
 
     public static int getResId(String resName, Class<?> c) {

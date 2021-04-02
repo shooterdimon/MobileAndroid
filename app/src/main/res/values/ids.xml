@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="movie_info_authors" type="id" />
+    <item name="movie_info_description" type="id" />
+    <item name="movie_info_pages" type="id" />
+    <item name="movie_info_publisher" type="id" />
+    <item name="movie_info_subtitle" type="id" />
+</resources>

@@ -22,4 +22,10 @@
         android:name="ua.kpi.comsys.iv8114.mobiledev.lab3.Lab3"
         android:label="@string/titleLab3"
         tools:layout="@layout/lab3" />
+
+    <fragment
+        android:id="@+id/navigation_images"
+        android:name="ua.kpi.comsys.iv8114.mobiledev.lab5.Lab5"
+        android:label="Lab5"
+        tools:layout="@layout/lab5" />
 </navigation>

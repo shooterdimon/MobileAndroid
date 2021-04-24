@@ -4,4 +4,12 @@
     <string name="titleLab2">Lab2</string>
     <string name="titleLab3">Lab3</string>
     <string name="diagram">Diagram</string>
+    <string name="titleLab5">Lab5</string>
+    <string name="select_image">Select image</string>
+    <string name="image_1">image_1</string>
+    <string name="image_2">image_2</string>
+    <string name="image_3">image_3</string>
+    <string name="image_4">image_4</string>
+    <string name="image_5">image_5</string>
+    <string name="image_6">image_6</string>
 </resources>

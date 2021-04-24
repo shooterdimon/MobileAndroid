@@ -16,4 +16,9 @@
         android:icon="@drawable/ic_baseline_videocam_24"
         android:title="@string/titleLab3" />
 
+    <item
+        android:id="@+id/navigation_images"
+        android:icon="@drawable/ic_insert_photo_black_24dp"
+        android:title="@string/titleLab5" />
+
 </menu>

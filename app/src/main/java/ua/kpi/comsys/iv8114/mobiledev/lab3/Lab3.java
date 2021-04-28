@@ -1,23 +1,30 @@
 package ua.kpi.comsys.iv8114.mobiledev.lab3;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.res.Configuration;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
+import android.widget.ProgressBar;
 import android.widget.SearchView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.RawRes;
 import androidx.annotation.RequiresApi;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.fragment.app.Fragment;
@@ -30,18 +37,27 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
-import java.io.ByteArrayOutputStream;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 
 import ua.kpi.comsys.iv8114.mobiledev.R;
 
 public class Lab3 extends Fragment {
-    private View root;
+    private static View root;
     private static LinearLayout moviesLayout;
     private static HashMap<SwipeLayout, Movie> moviesHash;
+    private static TextView noItems;
+    private static ProgressBar loadingBar;
+    private static Set<SwipeLayout> removeSet;
 
     @RequiresApi(api = Build.VERSION_CODES.M)
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -50,79 +66,53 @@ public class Lab3 extends Fragment {
         moviesLayout = root.findViewById(R.id.scroll_lay);
         moviesHash = new HashMap<>();
 
-        try {
-            ArrayList<Movie> movies = parseMovies(readTextFile(root.getContext(), R.raw.movies));
-            for (Movie movie : movies) {
-                Object[] tmp = new MovieList(root.getContext(), moviesLayout, movie).moviePack;
-                moviesHash.put((SwipeLayout) tmp[0], (Movie) tmp[1]);
-            }
-        } catch (ParseException e) {
-            e.printStackTrace();
-        }
+        noItems = root.findViewById(R.id.no_movies_view);
+        loadingBar = root.findViewById(R.id.no_items_progressbar);
+
+        removeSet = new HashSet<>();
 
         SearchView searchView = root.findViewById(R.id.search_view);
 
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String query) {
-                int countResults = 0;
-                for (SwipeLayout movie : moviesHash.keySet()) {
-                    if (query == null){
-                        movie.setVisibility(View.VISIBLE);
-                        countResults++;
-                    }
-                    else {
-                        if (moviesHash.get(movie).getTitle().toLowerCase()
-                                .contains(query.toLowerCase()) || query.length() == 0){
-                            movie.setVisibility(View.VISIBLE);
-                            countResults++;
-                        }
-                        else
-                           movie.setVisibility(View.GONE);
-                    }
-                }
-
-                if (countResults == 0){
-                    root.findViewById(R.id.no_movies_view).setVisibility(View.VISIBLE);
+                removeSet.addAll(moviesHash.keySet());
+                if (query.length() >= 3) {
+                    AsyncLoadMovies aTask = new AsyncLoadMovies();
+                    loadingBar.setVisibility(View.VISIBLE);
+                    noItems.setVisibility(View.GONE);
+                    aTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, query);
                 }
                 else {
-                    root.findViewById(R.id.no_movies_view).setVisibility(View.GONE);
+                    for (SwipeLayout swipeLayout : removeSet) {
+                        binClicked(swipeLayout);
+                    }
+                    removeSet.clear();
                 }
                 return false;
             }
 
             @Override
             public boolean onQueryTextChange(String query) {
-                int countResults = 0;
-                for (SwipeLayout movie :
-                        moviesHash.keySet()) {
-                    if (query == null){
-                        movie.setVisibility(View.VISIBLE);
-                        countResults++;
-                    }
-                    else {
-                        if (moviesHash.get(movie).getTitle().toLowerCase()
-                                .contains(query.toLowerCase()) || query.length() == 0){
-                            movie.setVisibility(View.VISIBLE);
-                            countResults++;
-                        }
-                        else
-                            movie.setVisibility(View.GONE);
-                    }
-                }
-
-                if (countResults == 0){
-                    root.findViewById(R.id.no_movies_view).setVisibility(View.VISIBLE);
+                removeSet.addAll(moviesHash.keySet());
+                if (query.length() >= 3) {
+                    AsyncLoadMovies aTask = new AsyncLoadMovies();
+                    loadingBar.setVisibility(View.VISIBLE);
+                    noItems.setVisibility(View.GONE);
+                    aTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, query);
                 }
                 else {
-                    root.findViewById(R.id.no_movies_view).setVisibility(View.GONE);
+                    for (SwipeLayout swipeLayout : removeSet) {
+                        binClicked(swipeLayout);
+                    }
+                    removeSet.clear();
                 }
                 return false;
             }
         });
 
-        Button btnAddBook = root.findViewById(R.id.button_add_movie);
-        btnAddBook.setOnClickListener(v -> {
+        Button btnAddMovie = root.findViewById(R.id.button_add_movie);
+        btnAddMovie.setOnClickListener(v -> {
             MovieAdd popUpClass = new MovieAdd();
             Object[] popups = popUpClass.showPopupWindow(v);
 
@@ -161,9 +151,38 @@ public class Lab3 extends Fragment {
         return root;
     }
 
+
+    protected static void loadMovies(ArrayList<Movie> movies){
+        if (movies != null) {
+            for (SwipeLayout swipeLayout : removeSet) {
+                binClicked(swipeLayout);
+            }
+            removeSet.clear();
+            if (movies.size() > 0) {
+                noItems.setVisibility(View.GONE);
+                for (Movie movie :
+                        movies) {
+                    Object[] tmp = new MovieList(root.getContext(), moviesLayout, movie).moviePack;
+
+                    moviesHash.put((SwipeLayout) tmp[0], (Movie)tmp[1]);
+                }
+            } else {
+                noItems.setVisibility(View.VISIBLE);
+            }
+        }
+        else {
+            noItems.setVisibility(View.VISIBLE);
+            Toast.makeText(root.getContext(), "Cannot load data!", Toast.LENGTH_LONG).show();
+        }
+        loadingBar.setVisibility(View.GONE);
+    }
+
     public static void binClicked(SwipeLayout swipeLayout){
         moviesHash.remove(swipeLayout);
         moviesLayout.removeView(swipeLayout);
+        if (moviesHash.keySet().isEmpty()){
+            noItems.setVisibility(View.VISIBLE);
+        }
     }
 
     @Override
@@ -183,43 +202,112 @@ public class Lab3 extends Fragment {
         }
     }
 
-    public static String readTextFile(Context context, @RawRes int id){
-        InputStream inputStream = context.getResources().openRawResource(id);
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+    private static class AsyncLoadMovies extends AsyncTask<String, Void, ArrayList<Movie>> {
+        private String getRequest(String url) {
+            StringBuilder result = new StringBuilder();
+            try {
+                URL getReq = new URL(url);
+                URLConnection movieConnection = getReq.openConnection();
+                BufferedReader in = new BufferedReader(new InputStreamReader(movieConnection.getInputStream()));
+                String inputLine;
 
-        byte[] buffer = new byte[1024];
-        int size;
-        try {
-            while ((size = inputStream.read(buffer)) != -1) {
-                outputStream.write(buffer, 0, size);
+                while ((inputLine = in.readLine()) != null)
+                    result.append(inputLine).append("\n");
+
+                in.close();
+
+            } catch (MalformedURLException e) {
+                System.err.println(String.format("Incorrect URL <%s>!", url));
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-            outputStream.close();
-            inputStream.close();
-        } catch (IOException e) {
-            System.err.println("File can not be read!");
-            e.printStackTrace();
+
+            return result.toString();
         }
-        return outputStream.toString();
+
+        private ArrayList<Movie> parseMovies(String jsonText) throws ParseException {
+            ArrayList<Movie> result = new ArrayList<>();
+
+            org.json.simple.JSONObject jsonObject = (org.json.simple.JSONObject) new JSONParser().parse(jsonText);
+
+            org.json.simple.JSONArray movies = (JSONArray) jsonObject.get("Search");
+            for (Object movie : movies) {
+                org.json.simple.JSONObject tmp = (JSONObject) movie;
+                result.add(new Movie(
+                        (String) tmp.get("Title"),
+                        (String) tmp.get("Year"),
+                        (String) tmp.get("imdbID"),
+                        (String) tmp.get("Type"),
+                        (String) tmp.get("Poster")
+                ));
+            }
+
+            return result;
+        }
+        private ArrayList<Movie> search(String newText){
+            String API_KEY = "493d9265";
+            String jsonResponse = String.format("http://www.omdbapi.com/?apikey=%s&s=\"%s\"&page=1", API_KEY, newText);
+            try {
+                ArrayList<Movie> movies = parseMovies(getRequest(jsonResponse));
+                return movies;
+            } catch (ParseException e) {
+                System.err.println("Incorrect content of JSON file!");
+                e.printStackTrace();
+            }
+            return null;
+        }
+
+        @RequiresApi(api = Build.VERSION_CODES.M)
+        @Override
+        protected ArrayList<Movie> doInBackground(String... strings) {
+            return search(strings[0]);
+        }
+
+        @RequiresApi(api = Build.VERSION_CODES.M)
+        @Override
+        protected void onPostExecute(ArrayList<Movie> movies) {
+            super.onPostExecute(movies);
+            Lab3.loadMovies(movies);
+        }
     }
+    public static class DownloadImageTask extends AsyncTask<String, Void, Bitmap> {
+        @SuppressLint("StaticFieldLeak")
+        ImageView bmImage;
+        @SuppressLint("StaticFieldLeak")
+        ProgressBar loadingBar;
+        @SuppressLint("StaticFieldLeak")
+        Context context;
 
-    private ArrayList<Movie> parseMovies(String jsonText) throws ParseException {
-        ArrayList<Movie> result = new ArrayList<>();
-
-        org.json.simple.JSONObject jsonObject = (org.json.simple.JSONObject) new JSONParser().parse(jsonText);
-
-        org.json.simple.JSONArray movies = (JSONArray) jsonObject.get("Search");
-        for (Object movie : movies) {
-            org.json.simple.JSONObject tmp = (JSONObject) movie;
-            result.add(new Movie(
-                    (String) tmp.get("Title"),
-                    (String) tmp.get("Year"),
-                    (String) tmp.get("imdbID"),
-                    (String) tmp.get("Type"),
-                    (String) tmp.get("Poster")
-            ));
+        public DownloadImageTask(ImageView bmImage, ProgressBar loadingBar, Context context) {
+            this.bmImage = bmImage;
+            this.loadingBar = loadingBar;
+            this.context = context;
         }
 
-        return result;
+        protected Bitmap doInBackground(String... urls) {
+            String urldisplay = urls[0];
+            Bitmap mIcon11 = null;
+            try {
+                InputStream in = new java.net.URL(urldisplay).openStream();
+                mIcon11 = BitmapFactory.decodeStream(in);
+            } catch (Exception e) {
+                Log.e("Error", e.getMessage());
+                e.printStackTrace();
+            }
+            return mIcon11;
+        }
+
+        protected void onPostExecute(Bitmap result) {
+            if (result != null)
+                bmImage.setImageBitmap(result);
+            else {
+                bmImage.setBackgroundResource(R.drawable.not_found);
+                Toast.makeText(context, "Cannot load data!", Toast.LENGTH_LONG).show();
+            }
+            loadingBar.setVisibility(View.GONE);
+            bmImage.setVisibility(View.VISIBLE);
+        }
     }
 
 }

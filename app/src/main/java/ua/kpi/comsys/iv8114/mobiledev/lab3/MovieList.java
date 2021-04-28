@@ -4,18 +4,19 @@ import android.content.Context;
 import android.graphics.Color;
 import android.text.TextUtils;
 import android.view.Gravity;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
+import androidx.core.content.ContextCompat;
 
 import com.daimajia.swipe.SwipeLayout;
-
-import java.lang.reflect.Field;
 
 import ua.kpi.comsys.iv8114.mobiledev.R;
 
@@ -61,11 +62,21 @@ public class MovieList {
             }
         });
 
+        ProgressBar loadingImageBar = new ProgressBar(context);
+        loadingImageBar.getIndeterminateDrawable().setColorFilter(
+                ContextCompat.getColor(context, R.color.purple_500),
+                android.graphics.PorterDuff.Mode.MULTIPLY);
+        loadingImageBar.setVisibility(View.GONE);
+        loadingImageBar.setId(loadingImageBar.hashCode());
+        movieLayTmp.addView(loadingImageBar);
+
         ImageView imageTmp = new ImageView(context);
         imageTmp.setId(imageTmp.hashCode());
-        if (movie.getPosterPath().length() != 0)
-            imageTmp.setImageResource(
-                    getResId(movie.getPosterPath().toLowerCase().split("\\.")[0], R.drawable.class));
+        if (movie.getPosterPath().length() != 0){
+            imageTmp.setVisibility(View.INVISIBLE);
+            loadingImageBar.setVisibility(View.VISIBLE);
+            new Lab3.DownloadImageTask(imageTmp, loadingImageBar, context).execute(movie.getPosterPath());
+        }
         ConstraintLayout.LayoutParams imgParams =
                 new ConstraintLayout.LayoutParams(300, 300);
         movieLayTmp.addView(imageTmp, imgParams);
@@ -139,15 +150,5 @@ public class MovieList {
         textConstraintSet.applyTo(movieLayTmp);
 
         return new Object[] {swipeLayout, movie};
-    }
-
-    public static int getResId(String resName, Class<?> c) {
-        try {
-            Field idField = c.getDeclaredField(resName);
-            return idField.getInt(idField);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return -1;
-        }
     }
 }

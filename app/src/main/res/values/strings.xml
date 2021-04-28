@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Android_Prog</string>
+    <string name="app_name">MobileDev</string>
     <string name="titleLab1">Lab1</string>
     <string name="titleLab2">Lab2</string>
     <string name="titleLab3">Lab3</string>
@@ -12,4 +12,19 @@
     <string name="image_4">image_4</string>
     <string name="image_5">image_5</string>
     <string name="image_6">image_6</string>
+    <string name="add_movie">Add movie</string>
+    <string name="movies_not_found">Movies not found</string>
+    <string name="title">Title:</string>
+    <string name="year">Year:</string>
+    <string name="genre">Genre:</string>
+    <string name="director">Director:</string>
+    <string name="actors">Actors:</string>
+    <string name="country">Country:</string>
+    <string name="language">Language:</string>
+    <string name="production">Production:</string>
+    <string name="released">Released:</string>
+    <string name="runtime">Runtime:</string>
+    <string name="awards">Awards:</string>
+    <string name="rating">Rating:</string>
+    <string name="plot">Plot:</string>
 </resources>
